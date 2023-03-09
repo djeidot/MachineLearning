@@ -6,7 +6,9 @@ class Player {
     val hand = mutableListOf<Cards>()
     val table = mutableMapOf<CardGroups, MutableList<Cards>>()
     val colorReset = "\u001b[0m"
-    
+    val colorBack = listOf("\u001b[48;5;166m", "\u001b[48;5;202m")
+    val space = " "
+
     init {
         addToHand(Cards.Nigiri1)
         addToHand(Cards.Maki3)
@@ -24,7 +26,7 @@ class Player {
         addToTable(Cards.Dumplings)
         addToTable(Cards.Dumplings)
         
-        draw()
+        drawNS()
     }
 
     private fun addToTable(card: Cards) {
@@ -39,66 +41,118 @@ class Player {
         hand.add(card)
     }
 
-    private fun draw() {
-        var bigTableWidth = 50
-        var bigTableHeight = 15
+    private fun drawWE() {
+//        .M2.  
+//        .M1.  
+//        ....
+//
+//        .N1. .N1..
+//        .... .M3..
+//             .Pu..
+//        .Te. .Wa..
+//        .Te.
+//        ....
+//
+//        .Ch.
+//        ....
+        var tableWidth = 4
+        var tableHeight = table.values.sumOf { it.size + 2 } - 1
         
-//        +----++----++----++----+
-//        | M2 || N1 || Te || Ch |
-//        | M1 |+----+| Te |+----+
-//        +----+      +----+
-        val tableWidth = table.keys.size * 6
-        val tableHeight = table.values.maxOf { it.size } + 3
-//        +-------------+
-//        | N1 M3 Pu Wa |
-        val handWidth = hand.size * 3 + 3
-        val handHeight = 3
+        var handWidth = 5
+        var handHeight = hand.size
+        
+        var overallWidth = tableWidth + 1 + handWidth
+        var overallHeight = max(tableHeight, handHeight)
+        
+        var lines1 = mutableListOf<String>()
+        var lines2 = mutableListOf<String>()
+        
+        
+    }
+    private fun drawNS() {
+        var bigTableWidth = 50
+        var bigTableHeight = 20
+        
+//        .M2. .N1. .Te. .Ch.
+//        .M1. .... .Te. ....
+//        ....      ....
+        val tableWidth = table.keys.size * 5 - 1
+        val tableHeight = table.values.maxOf { it.size } + 1
+//        .N1.M3.Pu.Wa.
+//        .............        
+        val handWidth = hand.size * 3 + 1
+        val handHeight = 2
         
         val overallWidth = max(tableWidth, handWidth)
-        val overallHeight = tableHeight + handHeight
+        val overallHeight = tableHeight + 1 + handHeight
         
-        val tableStart = (bigTableWidth - tableWidth) / 2
-        val handStart = (bigTableWidth - handWidth) / 2
+        val tableStart = (overallWidth - tableWidth) / 2
+        val handStart = (overallWidth - handWidth) / 2
+        val areaStart = (bigTableWidth - overallWidth) / 2
         
+        val lines1 = mutableListOf<String>()
+        val lines2 = mutableListOf<String>()
+        
+        val handN = drawHand("N", true)
+        val tableN = drawTable("N")
+
+        val tableS = drawTable("S")
+        val handS = drawHand("S", false)
+
+        val bigLines = mutableListOf<String>()
+        bigLines.add("+" + "-".repeat(bigTableWidth - 2) + "+")
+        for (i in 1..(bigTableHeight - 2))
+            bigLines.add("|" + " ".repeat(bigTableWidth - 2) + "|")
+        bigLines.add("+" + "-".repeat(bigTableWidth - 2) + "+")
+
+        mapBlock(bigLines, 1, areaStart + handStart, handWidth, handN)
+        mapBlock(bigLines, handHeight + 2, areaStart + tableStart, tableWidth, tableN)
+        mapBlock(bigLines, bigTableHeight - 1 - handHeight - 1 - tableHeight, areaStart + tableStart, tableWidth, tableS)
+        mapBlock(bigLines, bigTableHeight - 1 - handHeight, areaStart + handStart, handWidth, handS)
+        
+        bigLines.forEach { println(it) }
+    }
+
+    private fun mapBlock(lines: MutableList<String>, row: Int, col: Int, width: Int, block: List<String>) {
+        for (i in block.indices) {
+            lines[row + i] = lines[row + i].replaceRange(col, col + width, block[i])
+        }
+    }
+
+    private fun drawHand(position: String, hidden: Boolean) : List<String> {
         val lines = mutableListOf<String>()
-        lines.add("+" + "-".repeat(bigTableWidth - 2) + "+")
-        for (i in 1..(bigTableHeight - overallHeight - 1))
-            lines.add("|" + " ".repeat(bigTableWidth - 2) + "|")
-        
-        lines.add("|" + " ".repeat(tableStart - 1) + "+----+".repeat(table.keys.size) + " ".repeat(tableStart - 1) + "|")
-        for (i in 0 until table.values.maxOf { it.size } + 2) {
-            var line = "|" + " ".repeat(tableStart - 1)
+        lines.add(hand.withIndex().joinToString("") { "${if (hidden) colorBack[it.index % 2] else it.value.group.bgColor} ${if (hidden) "  " else it.value.symbol}" }
+            + "${if (hidden) colorBack[hand.lastIndex % 2] else hand.last().group.bgColor} $colorReset")
+        lines.add(hand.withIndex().joinToString("") { "${if (hidden) colorBack[it.index % 2] else it.value.group.bgColor}   " }
+            + "${if (hidden) colorBack[hand.lastIndex % 2] else hand.last().group.bgColor} $colorReset")
+
+        return when (position) {
+            "S" -> lines
+            "N" -> lines.reversed()
+            else -> lines
+        }
+    }
+
+    private fun drawTable(position: String): List<String> {
+        val lines = mutableListOf<String>()
+        for (i in 0 until table.values.maxOf { it.size } + 1) {
+            var line = ""
             for ((group, cards) in table) {
                 line += if (i < cards.size) {
-                    "|${group.bgColor} ${cards[i].symbol} $colorReset|"
+                    "${group.bgColor} ${cards[i].symbol} $colorReset$space"
                 } else if (i == cards.size) {
-                    "|${group.bgColor}    $colorReset|"
-                } else if (i == cards.size + 1) {
-                    "+----+"
+                    "${group.bgColor}    $colorReset$space"
                 } else {
-                    " ".repeat(6)
+                    space.repeat(5)
                 }
             }
-            line += " ".repeat(tableStart - 1) + "|"
-            lines.add(line)
+            lines.add(line.removeRange(line.lastIndex..line.lastIndex))
         }
-        
-        lines.add("|" + " ".repeat(handStart - 1) + "+" + "-".repeat(handWidth - 2) + "+" + " ".repeat(handStart) + "|")
-        lines.add("|" + " ".repeat(handStart - 1) + "|"
-            + hand.joinToString("") { "${it.group.bgColor} ${it.symbol}" }
-            + "${hand.last().group.bgColor} $colorReset"
-            + "|"
-            + " ".repeat(handStart) + "|")
-        lines.add("|" + " ".repeat(handStart - 1) + "|"
-            + hand.joinToString("") { "${it.group.bgColor}   " }
-            + "${hand.last().group.bgColor} $colorReset"
-            + "|"
-            + " ".repeat(handStart) + "|")
-        
-
-        lines.add("+" + "-".repeat(bigTableWidth - 2) + "+")
-        
-        lines.forEach { println(it) }
+        return when (position) {
+            "S" -> lines
+            "N" -> lines.reversed()
+            else -> lines
+        }
     }
 }
  
