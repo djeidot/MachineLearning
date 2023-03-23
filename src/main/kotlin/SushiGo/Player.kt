@@ -2,7 +2,7 @@ package SushiGo
 
 import java.lang.Integer.max
 
-class Player(val position: Position, val hidden: Boolean) {
+class Player(val position: Position, val hidden: Boolean, val subPosition: Position = position) {
     val hand = mutableListOf<Cards>()
     val table = mutableMapOf<CardGroups, MutableList<Cards>>()
     val colorReset = "\u001b[0m"
@@ -41,77 +41,6 @@ class Player(val position: Position, val hidden: Boolean) {
     private fun addToHand(card: Cards) {
         hand.add(card)
     }
-
-//    private fun drawWE() {
-////        .M2.  
-////        .M1.  
-////        ....
-////
-////        .N1. .N1..
-////        .... .M3..
-////             .Pu..
-////        .Te. .Wa..
-////        .Te.
-////        ....
-////
-////        .Ch.
-////        ....
-//        var tableWidth = 4
-//        var tableHeight = table.values.sumOf { it.size + 2 } - 1
-//        
-//        var handWidth = 5
-//        var handHeight = hand.size
-//        
-//        var overallWidth = tableWidth + 1 + handWidth
-//        var overallHeight = max(tableHeight, handHeight)
-//        
-//        var lines1 = mutableListOf<String>()
-//        var lines2 = mutableListOf<String>()
-//    }
-//
-//    private fun drawNS() {
-//        var bigTableWidth = 50
-//        var bigTableHeight = 20
-//        
-////        .M2. .N1. .Te. .Ch.
-////        .M1. .... .Te. ....
-////        ....      ....
-//        val tableWidth = table.keys.size * 5 - 1
-//        val tableHeight = table.values.maxOf { it.size } + 1
-////        .N1.M3.Pu.Wa.
-////        .............        
-//        val handWidth = hand.size * 3 + 1
-//        val handHeight = 2
-//        
-//        val overallWidth = max(tableWidth, handWidth)
-//        val overallHeight = tableHeight + 1 + handHeight
-//        
-//        val tableStart = (overallWidth - tableWidth) / 2
-//        val handStart = (overallWidth - handWidth) / 2
-//        val areaStart = (bigTableWidth - overallWidth) / 2
-//        
-//        val lines1 = mutableListOf<String>()
-//        val lines2 = mutableListOf<String>()
-//        
-//        val handN = drawHand(Position.North, true)
-//        val tableN = drawTable(Position.North)
-//
-//        val tableS = drawTable(Position.South)
-//        val handS = drawHand(Position.South, false)
-//
-//        val bigLines = mutableListOf<String>()
-//        bigLines.add("+" + "-".repeat(bigTableWidth - 2) + "+")
-//        for (i in 1..(bigTableHeight - 2))
-//            bigLines.add("|" + " ".repeat(bigTableWidth - 2) + "|")
-//        bigLines.add("+" + "-".repeat(bigTableWidth - 2) + "+")
-//
-//        mapBlock(bigLines, 1, areaStart + handStart, handWidth, handN)
-//        mapBlock(bigLines, handHeight + 2, areaStart + tableStart, tableWidth, tableN)
-//        mapBlock(bigLines, bigTableHeight - 1 - handHeight - 1 - tableHeight, areaStart + tableStart, tableWidth, tableS)
-//        mapBlock(bigLines, bigTableHeight - 1 - handHeight, areaStart + handStart, handWidth, handS)
-//        
-//        bigLines.forEach { println(it) }
-//    }
 
     fun getHandWidth() : Int =
         when (position) {
