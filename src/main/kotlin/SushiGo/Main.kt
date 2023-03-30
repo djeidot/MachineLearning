@@ -2,11 +2,111 @@ package SushiGo
 
 import kotlin.math.max
 
-class Main {
+class Main (val playerSize: Int) {
     private val players = mutableListOf<Player>()
     private val playerDistance = 6
+    private val deck = mutableListOf<Cards>()
     
-    fun run(playerSize: Int) {
+    fun run() {
+        setupPlayers()
+        
+        for (round in 1..3) {
+            dealCards()
+
+            while (players.first().hand.size > 0) {
+                draw()
+
+                players.forEach {
+                    it.playRound()
+                }
+                val handLastPlayer = players.last().hand
+                for (i in players.lastIndex downTo 1) {
+                    players[i].hand = players[i - 1].hand
+                }
+                players.first().hand = handLastPlayer
+            }
+            
+            updateScore()
+            if (round != 3) players.forEach { it.clearTable() }
+        }
+    }
+
+    private fun updateScore() {
+        // Maki - count maki rolls, most gets 6 points, second gets 3 points
+        val makiRolls = players.withIndex().map { Pair(it.index, it.value.getMakiRollCount()) }.sortedByDescending { it.second }
+        val makiHighScore = makiRolls[0].second
+        
+        val makiFirstPlayers = makiRolls.filter { it.second == makiHighScore }
+        val makiFirstPlayerScore = makiHighScore / makiFirstPlayers.size
+        makiFirstPlayers.forEach { players[it.first].score += makiFirstPlayerScore }
+
+        if (makiFirstPlayers.size == 1) {
+            val secondScore = makiRolls.drop(1)[0].second
+            val secondPlayers = makiRolls.filter { it.second == secondScore }
+            val secondPlayerScore = secondScore / secondPlayers.size
+            secondPlayers.forEach { players[it.first].score += secondPlayerScore }
+        }
+        // Tempura - each 2 tempura cards score 5 points
+        for (player in players) {
+            val tempuraCount = player.table[CardGroups.Tempura]?.size ?: 0
+            val tempuraScore = (tempuraCount / 2) * 5
+            player.score += tempuraScore
+        }
+        // Sashimi - each 3 sashimi cards score 10 points
+        for (player in players) {
+            val sashimiCount = player.table[CardGroups.Sashimi]?.size ?: 0
+            val sashimiScore = (sashimiCount / 3) * 10
+            player.score += sashimiScore
+        }
+        // Dumplings - 1 2 3 4 5+ cards yield 1 3 6 10 15 points
+        for (player in players) {
+            val dumplingCount = player.table[CardGroups.Dumplings]?.size ?: 0
+            val dumplingScore = (0..dumplingCount).reduce { sum, it -> sum + it }
+            player.score += dumplingScore
+        }
+        // Nigiri - value on card, if on top of Wasabi then x3
+        for (player in players) {
+            var activateWasabi = false
+            var nigiriScore = 0
+            for (card in player.table[CardGroups.Nigiri] ?: listOf()) {
+                when (card) {
+                    Cards.Nigiri1 -> { 
+                        nigiriScore += if (activateWasabi) 3 else 1
+                        activateWasabi = false
+                    }
+                    Cards.Nigiri2 -> {
+                        nigiriScore += if (activateWasabi) 6 else 2
+                        activateWasabi = false
+                    }
+                    Cards.Nigiri3 -> {
+                        nigiriScore += if (activateWasabi) 9 else 3
+                        activateWasabi = false
+                    }
+                    Cards.Wasabi -> {
+                        activateWasabi = true
+                    }
+                    else -> throw IllegalArgumentException()
+                }
+            }
+            player.score += nigiriScore
+        }
+        // Pudding - most puddings gets +6, least puddings gets -6
+//        var puddingCount = players.withIndex().map { Pair(it.index, it.value.table[CardGroups.Pudding]?.size ?: 0)}.sortedByDescending { it.second }
+//        val puddingHighScore = puddingCount[0].second
+//
+//        val puddingFirstPlayers = makiRolls.filter { it.second == puddingHighScore }
+//        val puddingFirstPlayerScore = makiHighScore / puddingFirstPlayers.size
+//        puddingFirstPlayers.forEach { players[it.first].score += puddingFirstPlayerScore }
+//
+//        val puddingLowScore = puddingCount.last().second
+//        if (players.size > 2 && puddingLowScore != puddingHighScore) {
+//            val lastPlayers = makiRolls.filter { it.second == puddingLowScore }
+//            val lastPlayerScore = puddingLowScore / lastPlayers.size
+//            lastPlayers.forEach { players[it.first].score += puddingLowScore }
+//        }
+    }
+
+    private fun setupPlayers() {
         players.clear()
         players.addAll(
             when (playerSize) {
@@ -35,8 +135,18 @@ class Main {
                 else -> throw IllegalArgumentException("Player size must be 2-5")
             }
         )
+    }
+
+    private fun dealCards() {
+        Cards.setNewDeck(deck)
         
-        draw()
+        val puddingCount = players.sumOf { it.table[CardGroups.Pudding]?.size ?: 0 }
+        repeat(puddingCount) { deck.remove(Cards.Pudding) }
+        
+        for (player in players) {
+            val dealtCards = 12 - playerSize
+            repeat(dealtCards) { player.addToHand(deck.removeFirst()) }
+        }        
     }
 
     private fun draw() {
@@ -186,8 +296,8 @@ class Main {
 }
 
 fun main() {
-    val main = Main()
     print("Select number of players: ")
     val playerSize = readln().toInt()
-    main.run(playerSize)
+    val main = Main(playerSize)
+    main.run()
 }

@@ -22,5 +22,29 @@ enum class Cards(val symbol: String, val group: CardGroups) {
     Sashimi("Sa", CardGroups.Sashimi),
     Dumplings("Du", CardGroups.Dumplings),
     Pudding("Pu", CardGroups.Pudding),
-    Chopsticks("Ch", CardGroups.Chopsticks)
+    Chopsticks("Ch", CardGroups.Chopsticks);
+
+    companion object {
+
+        fun getFromSymbol(symbol: String) = Cards.values().firstOrNull { it.symbol == symbol }
+        
+        fun setNewDeck(deck: MutableList<Cards>) {
+            deck.clear()
+
+            repeat(5) { deck.add(Nigiri1) }
+            repeat(5) { deck.add(Nigiri2) }
+            repeat(10) { deck.add(Nigiri3) }
+            repeat(6) { deck.add(Wasabi) }
+            repeat(6) { deck.add(Maki1) }
+            repeat(12) { deck.add(Maki2) }
+            repeat(8) { deck.add(Maki3) }
+            repeat(14) { deck.add(Tempura) }
+            repeat(14) { deck.add(Sashimi) }
+            repeat(14) { deck.add(Dumplings) }
+            repeat(10) { deck.add(Pudding) }
+            repeat(4) { deck.add(Chopsticks) }
+
+            deck.shuffle()
+        }
+    }
 }
