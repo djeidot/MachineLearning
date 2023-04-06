@@ -7,14 +7,16 @@ class Main (val playerSize: Int) {
     private val playerDistance = 6
     private val deck = mutableListOf<Cards>()
     
-    fun run() {
-        setupPlayers()
+    fun run(training: Boolean) {
+        setupPlayers(training)
         
         for (round in 1..3) {
             dealCards()
 
             while (players.first().hand.size > 0) {
-                draw()
+                if (!training) {
+                    draw()
+                }
 
                 players.forEach {
                     it.playRound()
@@ -26,24 +28,28 @@ class Main (val playerSize: Int) {
                 players.first().hand = handLastPlayer
             }
             
-            updateScore()
+            updateScore(round == 3)
             if (round != 3) players.forEach { it.clearTable() }
+        }
+
+        if (!training) {
+            draw()
         }
     }
 
-    private fun updateScore() {
+    private fun updateScore(scorePuddings: Boolean) {
         // Maki - count maki rolls, most gets 6 points, second gets 3 points
         val makiRolls = players.withIndex().map { Pair(it.index, it.value.getMakiRollCount()) }.sortedByDescending { it.second }
-        val makiHighScore = makiRolls[0].second
+        val makiMostRolls = makiRolls[0].second
         
-        val makiFirstPlayers = makiRolls.filter { it.second == makiHighScore }
-        val makiFirstPlayerScore = makiHighScore / makiFirstPlayers.size
+        val makiFirstPlayers = makiRolls.filter { it.second == makiMostRolls }
+        val makiFirstPlayerScore = 6 / makiFirstPlayers.size
         makiFirstPlayers.forEach { players[it.first].score += makiFirstPlayerScore }
 
         if (makiFirstPlayers.size == 1) {
-            val secondScore = makiRolls.drop(1)[0].second
-            val secondPlayers = makiRolls.filter { it.second == secondScore }
-            val secondPlayerScore = secondScore / secondPlayers.size
+            val secondMostRolls = makiRolls.drop(1)[0].second
+            val secondPlayers = makiRolls.filter { it.second == secondMostRolls }
+            val secondPlayerScore = 3 / secondPlayers.size
             secondPlayers.forEach { players[it.first].score += secondPlayerScore }
         }
         // Tempura - each 2 tempura cards score 5 points
@@ -91,46 +97,50 @@ class Main (val playerSize: Int) {
             player.score += nigiriScore
         }
         // Pudding - most puddings gets +6, least puddings gets -6
-//        var puddingCount = players.withIndex().map { Pair(it.index, it.value.table[CardGroups.Pudding]?.size ?: 0)}.sortedByDescending { it.second }
-//        val puddingHighScore = puddingCount[0].second
-//
-//        val puddingFirstPlayers = makiRolls.filter { it.second == puddingHighScore }
-//        val puddingFirstPlayerScore = makiHighScore / puddingFirstPlayers.size
-//        puddingFirstPlayers.forEach { players[it.first].score += puddingFirstPlayerScore }
-//
-//        val puddingLowScore = puddingCount.last().second
-//        if (players.size > 2 && puddingLowScore != puddingHighScore) {
-//            val lastPlayers = makiRolls.filter { it.second == puddingLowScore }
-//            val lastPlayerScore = puddingLowScore / lastPlayers.size
-//            lastPlayers.forEach { players[it.first].score += puddingLowScore }
-//        }
+        if (scorePuddings) {
+            var puddingCount = players.withIndex().map { Pair(it.index, it.value.table[CardGroups.Pudding]?.size ?: 0)}.sortedByDescending { it.second }
+            val mostPuddings = puddingCount[0].second
+
+            val puddingFirstPlayers = puddingCount.filter { it.second == mostPuddings }
+            val puddingFirstPlayerScore = 6 / puddingFirstPlayers.size
+            puddingFirstPlayers.forEach { players[it.first].score += puddingFirstPlayerScore }
+
+            val leastPuddings = puddingCount.last().second
+            if (players.size > 2 && leastPuddings != mostPuddings) {
+                val lastPlayers = puddingCount.filter { it.second == leastPuddings }
+                val lastPlayerScore = -(6 / lastPlayers.size)
+                lastPlayers.forEach { players[it.first].score += lastPlayerScore }
+            }
+        }
     }
 
-    private fun setupPlayers() {
+    private fun setupPlayers(training: Boolean) {
         players.clear()
+        
+        if (training)       // TODO Change later
+            players.add(CpuPlayer(Position.South))
+        else
+            players.add(HumanPlayer(Position.South))
+        
         players.addAll(
             when (playerSize) {
                 2 -> listOf (
-                    Player(Position.South, false),
-                    Player(Position.North, true)
+                    CpuPlayer(Position.North)
                 )
                 3 -> listOf(
-                    Player(Position.South, false),
-                    Player(Position.North, true),
-                    Player(Position.East, true)
+                    CpuPlayer(Position.North),
+                    CpuPlayer(Position.East)
                 )
                 4 -> listOf(
-                    Player(Position.South, false),
-                    Player(Position.West, true),
-                    Player(Position.North, true),
-                    Player(Position.East, true)
+                    CpuPlayer(Position.West),
+                    CpuPlayer(Position.North),
+                    CpuPlayer(Position.East)
                 )
                 5 -> listOf(
-                    Player(Position.South, false),
-                    Player(Position.West, true),
-                    Player(Position.North, true, Position.West),
-                    Player(Position.North, true, Position.East),
-                    Player(Position.East, true)
+                    CpuPlayer(Position.West),
+                    CpuPlayer(Position.North, Position.West),
+                    CpuPlayer(Position.North, Position.East),
+                    CpuPlayer(Position.East)
                 )
                 else -> throw IllegalArgumentException("Player size must be 2-5")
             }
@@ -146,7 +156,7 @@ class Main (val playerSize: Int) {
         for (player in players) {
             val dealtCards = 12 - playerSize
             repeat(dealtCards) { player.addToHand(deck.removeFirst()) }
-        }        
+        }
     }
 
     private fun draw() {
@@ -195,6 +205,16 @@ class Main (val playerSize: Int) {
         players.filter { it.position == Position.South }.forEach{ player ->
             val areaWidth = max(player.getHandWidth(), player.getTableWidth())
             val areaStart = if (players.size == 3) playerDistance else (tableWidth - areaWidth) / 2
+            if (player.score > 0) {
+                val score = player.score.toString()
+                mapBlock(
+                    bigLines,
+                    tableHeight - 1 - player.getHandHeight() - 1 - player.getTableHeight() - 2,
+                    (tableWidth - score.length) / 2,
+                    score.length,
+                    listOf(score)
+                )
+            }
             mapBlock(
                 bigLines,
                 tableHeight - 1 - player.getHandHeight() - 1 - player.getTableHeight(),
@@ -228,6 +248,16 @@ class Main (val playerSize: Int) {
                     player.getTableWidth(),
                     player.drawTable()
                 )
+                if (player.score > 0) {
+                    val score = player.score.toString()
+                    mapBlock(
+                        bigLines,
+                        1 + player.getHandHeight() + 1 + player.getTableHeight() + 1,
+                        (tableWidth - score.length) / 2,
+                        score.length,
+                        listOf(score)
+                    )
+                }
             } else {
                 val areaWidth = players.filter { it.position == Position.North }.let { filtered ->
                     filtered.sumOf {
@@ -256,9 +286,29 @@ class Main (val playerSize: Int) {
                     player.getTableWidth(),
                     player.drawTable()
                 )
+                if (player.score > 0) {
+                    val score = player.score.toString()
+                    mapBlock(
+                        bigLines,
+                        1 + handHeight + 1 + player.getTableHeight() + 1,
+                        areaStart + (playerWidth - score.length) / 2,
+                        score.length,
+                        listOf(score)
+                    )
+                }               
             }
         }
         players.filter { it.position == Position.West }.forEach { player ->
+            if (player.score > 0) {
+                val score = player.score.toString()
+                mapBlock(
+                    bigLines,
+                    (tableHeight - 1) / 2,
+                    1 + player.getHandWidth() + 1 + player.getTableWidth() + 2,
+                    score.length,
+                    listOf(score)
+                )
+            }
             mapBlock(
                 bigLines,
                 (tableHeight - player.getTableHeight()) / 2,
@@ -275,6 +325,16 @@ class Main (val playerSize: Int) {
             )
         }
         players.filter { it.position == Position.East }.forEach { player ->
+            if (player.score > 0) {
+                val score = player.score.toString()
+                mapBlock(
+                    bigLines,
+                    (tableHeight - 1) / 2,
+                    -(1 + player.getHandWidth() + 1 + player.getTableWidth() + 1 + score.length),
+                    score.length,
+                    listOf(score)
+                )
+            }
             mapBlock(
                 bigLines,
                 (tableHeight - player.getTableHeight()) / 2,
@@ -299,5 +359,5 @@ fun main() {
     print("Select number of players: ")
     val playerSize = readln().toInt()
     val main = Main(playerSize)
-    main.run()
+    main.run(false)
 }
