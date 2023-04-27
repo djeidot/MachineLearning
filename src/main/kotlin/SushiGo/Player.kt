@@ -51,7 +51,7 @@ abstract class Player(val position: Position, val subPosition: Position = positi
         val lines = mutableListOf<String>()
         val hidden = this is CpuPlayer
 
-        if (hand.size > 1) {
+        if (hand.size > 0) {
             if (position in listOf(Position.West, Position.East)) {
                 for (card in hand.withIndex()) {
                     val cardColor = if (hidden) colorBack[card.index % 2] else card.value.group.bgColor

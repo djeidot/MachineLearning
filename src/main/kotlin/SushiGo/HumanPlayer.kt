@@ -1,19 +1,17 @@
 package SushiGo
 
-import kotlin.random.Random
-
 class HumanPlayer(position: Position, subPosition: Position = position) :
     Player(position, subPosition) {
 
     override fun playRound() {
-        val hasChopsticksInTable = (table[CardGroups.Chopsticks]?.size ?: 0) >= 1
+        val canUseChopsticks = (table[CardGroups.Chopsticks]?.size ?: 0) >= 1 && hand.size > 1
         // Play a card into your table
         validCards@ while (true) {
-            print("Pick a card to play" + (if (hasChopsticksInTable) " (or two cards if you want to use the Chopsticks)" else "") + ": ")
+            print("Pick a card to play" + (if (canUseChopsticks) " (or two cards if you want to use the Chopsticks)" else "") + ": ")
             val input = readln()
             val cards = input.trim().split(" ")
-            if (cards.size != 1 && (cards.size != 2 || !hasChopsticksInTable)) {
-                println("You can only play one" + if (hasChopsticksInTable) " or two cards" else "" + ".")
+            if (cards.size != 1 && (cards.size != 2 || !canUseChopsticks)) {
+                println("You can only play one" + if (canUseChopsticks) " or two cards" else "" + ".")
                 continue
             }
             val duplicates = cards.size == 2 && cards[0] == cards[1]

@@ -11,6 +11,7 @@ class Main (val playerSize: Int) {
         setupPlayers(training)
         
         for (round in 1..3) {
+            println("Round $round")
             dealCards()
 
             while (players.first().hand.size > 0) {
@@ -29,11 +30,11 @@ class Main (val playerSize: Int) {
             }
             
             updateScore(round == 3)
+            if (!training) {
+                println("Scoring")
+                draw()
+            }
             if (round != 3) players.forEach { it.clearTable() }
-        }
-
-        if (!training) {
-            draw()
         }
     }
 
