@@ -2,15 +2,29 @@ package SushiGo
 
 import kotlin.math.max
 
-class Main (val playerSize: Int) {
-    private val players = mutableListOf<Player>()
+object Main {
+    var playerSize = 2
+        private set
+    
+    var currentRound = 1
+        private set
+    
+    var currentGame = 1
+        private set
+    
+    val players = mutableListOf<Player>()
     private val playerDistance = 6
     private val deck = mutableListOf<Cards>()
+
+    fun init(playerSize: Int) {
+        this.playerSize = playerSize
+    }
     
     fun run(training: Boolean) {
         setupPlayers(training)
         
         for (round in 1..3) {
+            currentRound = round
             println("Round $round")
             dealCards()
 
@@ -354,11 +368,17 @@ class Main (val playerSize: Int) {
 
         bigLines.forEach { println(it) }
     }
+
+    fun getPlayerToTheLeft(player: Player) : Player {
+        val playerIndex = players.indexOf(player)
+        val leftPlayerIndex = (playerIndex + playerSize - 1) % playerSize
+        return players[leftPlayerIndex]
+    }
 }
 
 fun main() {
     print("Select number of players: ")
     val playerSize = readln().toInt()
-    val main = Main(playerSize)
-    main.run(false)
+    Main.init(playerSize)
+    Main.run(false)
 }
