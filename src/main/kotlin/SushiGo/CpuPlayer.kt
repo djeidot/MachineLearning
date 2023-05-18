@@ -1,7 +1,6 @@
 package SushiGo
 
 import NeuralNet.NeuralNet
-import kotlin.random.Random
 
 class CpuPlayer(position: Position, subPosition: Position = position) :
     Player(position, subPosition) {
@@ -15,35 +14,32 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
                 4 * 15 + // other players' cards in table
                 12 // cards in hand
         private val outputSize = 12 + 12 * 12   // cards (no chopsticks) plus cards (with chopsticks)
-        val brain = NeuralNet(inputSize, 30, outputSize, false)
+        private val brain = NeuralNet(inputSize, 30, outputSize, false)
     
     override fun playRound() {
-        val decision = runMachineLearning()
+        val (card1, card2) = runMachineLearning()
 
-        val canUseChopsticks = (table[CardGroups.Chopsticks]?.size ?: 0) >= 1 && hand.size > 1
+        assert(canUseChopsticks() == (card2 != null))
         // Play a card into your table
-        val card = hand.random()
-        hand.remove(card)
-        addToTable(card)
-        if (canUseChopsticks) {
-            if (Random.nextBoolean()) {
-                val cardTwo = hand.random()
-                hand.remove(cardTwo)
-                addToTable(cardTwo)
-                val chop = table[CardGroups.Chopsticks]!!.removeFirst()
-                hand.add(chop)
-                if (table[CardGroups.Chopsticks]?.isEmpty() == true) {
-                    table.remove(CardGroups.Chopsticks)
-                }
+        hand.remove(card1)
+        addToTable(card1)
+        if (canUseChopsticks() && card2 != null) {
+            hand.remove(card2)
+            addToTable(card2)
+            val chop = table[CardGroups.Chopsticks]!!.removeFirst()
+            hand.add(chop)
+            if (table[CardGroups.Chopsticks]?.isEmpty() == true) {
+                table.remove(CardGroups.Chopsticks)
             }
         }
     }
+    
+    private fun canUseChopsticks() = (table[CardGroups.Chopsticks]?.size ?: 0) >= 1 && hand.size > 1
 
-    private fun runMachineLearning(): Int {
+    private fun runMachineLearning(): Pair<Cards, Cards?> {
         val input = getInput()
         val decisionArray = brain.output(input)
-        val filteredDecision = filterDecisions(decisionArray)
-        return filteredDecision
+        return filterDecisions(decisionArray)
     }
 
     private fun getInput(): FloatArray {
@@ -110,8 +106,43 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
         return input
     }
 
-    private fun filterDecisions(decisionArray: FloatArray): Int {
+    private fun filterDecisions(decisionArray: FloatArray): Pair<Cards, Cards?> {
+        // filterDecisions means we only care about cards we can legally play. So every card we cannot play gets
+        // overridden with a -1.0 score, then we select the card with the highest score.
+        // cards in output are arranged as
+        // 1 value per card type (-1 if not in hand)
+        // 1 value per card type * card type (-1 if card combination not in hand, or can't use chopsticks).
         
+        val cardTypeSize = Cards.values().size
+        if (!canUseChopsticks()) {
+            for (i in cardTypeSize..decisionArray.lastIndex) {
+                decisionArray[i] = -1f
+            }
+        }
+        for (cardType in Cards.values().withIndex()) {
+            if (!hand.contains(cardType.value)) {
+                decisionArray[cardType.index] = -1f
+                if (canUseChopsticks()) {
+                    for (i in Cards.values().indices) {
+                        decisionArray[cardTypeSize + cardTypeSize * i + cardType.index] = -1f
+                        decisionArray[cardTypeSize + cardTypeSize * cardType.index + i] = -1f
+                    }
+                }
+            }
+
+            if (canUseChopsticks() && hand.count { it == cardType.value } < 2) {
+                decisionArray[cardTypeSize + cardTypeSize * cardType.index + cardType.index] = -1f
+            }
+        }
+        
+        val bestDecision = decisionArray.withIndex().maxBy { it.value }.index
+        return if (bestDecision < cardTypeSize) {
+            Pair(Cards.values()[bestDecision], null)
+        } else {
+            val card1Index = (bestDecision - cardTypeSize) / cardTypeSize
+            val card2Index = (bestDecision - cardTypeSize) % cardTypeSize
+            Pair(Cards.values()[card1Index], Cards.values()[card2Index])
+        }
     }
 
     companion object {
