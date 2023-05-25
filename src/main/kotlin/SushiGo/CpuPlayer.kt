@@ -1,10 +1,11 @@
 package SushiGo
 
 import NeuralNet.NeuralNet
+import kotlin.math.max
 
 class CpuPlayer(position: Position, subPosition: Position = position) :
     Player(position, subPosition) {
-        private val inputSize = 1 + // number of players
+    private val inputSize = 1 + // number of players
                 1 + // current game
                 1 + // current round 
                 1 + // number of cards in hand
@@ -13,8 +14,9 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
                 15 + // cards in table
                 4 * 15 + // other players' cards in table
                 12 // cards in hand
-        private val outputSize = 12 + 12 * 12   // cards (no chopsticks) plus cards (with chopsticks)
-        private val brain = NeuralNet(inputSize, 30, outputSize, false)
+    private val outputSize = 12 + 12 * 12   // cards (no chopsticks) plus cards (with chopsticks)
+    private val brain = NeuralNet(inputSize, 30, outputSize, false)
+    private var skull: Population.Skull? = null
     
     override fun playRound() {
         val (card1, card2) = runMachineLearning()
@@ -31,6 +33,18 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
             if (table[CardGroups.Chopsticks]?.isEmpty() == true) {
                 table.remove(CardGroups.Chopsticks)
             }
+        }
+    }
+
+    fun setSkull(skull: Population.Skull) {
+        this.skull = skull
+        brain.copyFrom(skull.brain)
+    }
+
+    fun updateSkullScore() {
+        skull!!.apply { 
+            totalScore += score
+            maxScore = max(maxScore, score)
         }
     }
     

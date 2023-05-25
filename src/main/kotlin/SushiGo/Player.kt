@@ -132,4 +132,10 @@ abstract class Player(val position: Position, val subPosition: Position = positi
         }
         return count
     }
+
+    fun reset() {
+        score = 0
+        hand.clear()
+        table.clear()
+    }
 }

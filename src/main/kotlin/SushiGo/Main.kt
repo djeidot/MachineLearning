@@ -23,6 +23,17 @@ object Main {
     fun run(training: Boolean) {
         setupPlayers(training)
         
+        if (training) {
+            val population = Population(players)
+            population.train()
+        } else {
+            playGame(false)
+        }
+    }
+
+    fun playGame(training: Boolean) {
+        players.forEach { it.reset() }
+        
         for (round in 1..3) {
             currentRound = round
             println("Round $round")
@@ -42,7 +53,7 @@ object Main {
                 }
                 players.first().hand = handLastPlayer
             }
-            
+
             updateScore(round == 3)
             if (!training) {
                 println("Scoring")
@@ -132,7 +143,7 @@ object Main {
     private fun setupPlayers(training: Boolean) {
         players.clear()
         
-        if (training)       // TODO Change later
+        if (training)
             players.add(CpuPlayer(Position.South))
         else
             players.add(HumanPlayer(Position.South))
@@ -377,8 +388,11 @@ object Main {
 }
 
 fun main() {
+    print("Select P to play a game, T to train AI")
+    val mode = readln().uppercase()
+    assert(mode == "P" || mode == "T")
     print("Select number of players: ")
     val playerSize = readln().toInt()
     Main.init(playerSize)
-    Main.run(false)
+    Main.run(mode == "T")
 }
