@@ -14,7 +14,9 @@ class Table {
     }
 
     fun save(filename: String) {
-        File(filename).printWriter().use {
+        val file = File(filename)
+        file.createNewFile()
+        file.printWriter().use {
             for (line in contents) {
                 it.println(line)
             }

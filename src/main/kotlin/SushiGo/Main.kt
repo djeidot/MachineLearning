@@ -36,7 +36,9 @@ object Main {
         
         for (round in 1..3) {
             currentRound = round
-            println("Round $round")
+            if (!training) {
+                println("Round $round")
+            }
             dealCards()
 
             while (players.first().hand.size > 0) {
@@ -388,7 +390,7 @@ object Main {
 }
 
 fun main() {
-    print("Select P to play a game, T to train AI")
+    print("Select P to play a game, T to train AI: ")
     val mode = readln().uppercase()
     assert(mode == "P" || mode == "T")
     print("Select number of players: ")

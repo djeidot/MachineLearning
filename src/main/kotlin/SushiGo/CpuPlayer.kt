@@ -16,7 +16,7 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
                 12 // cards in hand
     private val outputSize = 12 + 12 * 12   // cards (no chopsticks) plus cards (with chopsticks)
     private val brain = NeuralNet(inputSize, 30, outputSize, false)
-    private var skull: Population.Skull? = null
+    private var skull: Skull? = null
     
     override fun playRound() {
         val (card1, card2) = runMachineLearning()
@@ -36,7 +36,7 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
         }
     }
 
-    fun setSkull(skull: Population.Skull) {
+    fun setSkull(skull: Skull) {
         this.skull = skull
         brain.copyFrom(skull.brain)
     }
