@@ -1,5 +1,6 @@
 package SushiGo
 
+import java.io.File
 import kotlin.math.max
 
 object Main {
@@ -173,6 +174,17 @@ object Main {
                 else -> throw IllegalArgumentException("Player size must be 2-5")
             }
         )
+
+        if (!training) {
+            // load best brains available
+            val dataPath = File("data/SushiGo")
+            val brainFiles = dataPath.listFiles().filter { it.isFile && it.name.matches(Regex("Skull\\d{3}.csv")) }.sortedByDescending { it.name }
+            for (i in 1 until playerSize) {
+                if (brainFiles.size >= i) {
+                    (players[i] as CpuPlayer).loadBrain("$dataPath/${brainFiles[i - 1].name}")
+                }
+            }
+        }
     }
 
     private fun dealCards() {

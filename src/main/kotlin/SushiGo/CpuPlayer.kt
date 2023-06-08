@@ -159,6 +159,10 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
         }
     }
 
+    fun loadBrain(fileName: String) {
+        skull!!.loadBrain(fileName)
+    }
+
     companion object {
         fun fillAllPlayers(
             firstPlayer: Player,

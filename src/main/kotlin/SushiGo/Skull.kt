@@ -2,7 +2,6 @@ package SushiGo
 
 import NeuralNet.NeuralNet
 import Snake.Table
-import java.io.File
 
 class Skull(val brain: NeuralNet) {
     val dataPath = "data/SushiGo"
@@ -47,5 +46,13 @@ class Skull(val brain: NeuralNet) {
         skullStats.add("TotalScore,MaxScore")
         skullStats.add("$totalScore,$maxScore")
         skullStats.save("$dataPath/SkullStats${generation.toString().padStart(3, '0')}.csv")
+    }
+
+    fun loadBrain(filePath: String) {
+        // loads skull from file
+        val table = Table.load(filePath)
+        if (!table.isEmpty()) {
+            brain.tableToNet(table)
+        }
     }
 }

@@ -1,12 +1,13 @@
 package SushiGo
 
 import NeuralNet.NeuralNet
+import java.io.File
 import kotlin.math.max
 import kotlin.random.Random
 
 class Population(val players: List<Player>) {
     private val numberBrains = 1200
-    private val mutationRate = 0.1f
+    private val mutationRate = 0.2f
     private val inputSize = 1 + // number of players
             1 + // current game
             1 + // current round 
@@ -20,10 +21,15 @@ class Population(val players: List<Player>) {
     private var generation = 1
     private var bestMaxScore = 0
     private var bestTotalScore = 0
+    private var prevMaxScore = 0
+    private var prevTotalScore = 0
+    private val gamesPerTraining = 15
 
     private var skulls = Array(numberBrains) { Skull(NeuralNet(inputSize, 30, outputSize, false)) }
 
     fun train() {
+        resetSavedSkulls()
+        
         while (true) {
             skulls.shuffle()
 
@@ -33,11 +39,14 @@ class Population(val players: List<Player>) {
                     player.setSkull(skulls[i + j])
                 }
 
-                for (game in 1..10) {
+                for (game in 1..gamesPerTraining) {
                     Main.playGame(true)
                     players.forEach { (it as CpuPlayer).updateSkullScore() }
                 }
             }
+            
+            prevTotalScore = skulls[0].totalScore
+            prevMaxScore = skulls[0].maxScore
 
             skulls.sortByDescending { it.totalScore }
 
@@ -53,10 +62,21 @@ class Population(val players: List<Player>) {
         }
     }
 
+    private fun resetSavedSkulls() {
+        // remove all saved skulls so we can start new
+        val dataPath = File("data/SushiGo")
+        for (file in dataPath.listFiles()) {
+            file.delete()
+        }
+    }
+
     fun printData() {
         println("Generation: ${generation}; " +
-                "highest score (10 games): ${skulls[0].totalScore}) (overall: $bestTotalScore); " +
-                "highest game score: ${skulls.maxOf { it.maxScore } } (overall: $bestMaxScore)"
+                "highest $gamesPerTraining-game score: ${skulls[0].totalScore} (overall: $bestTotalScore); " +
+                "highest game score: ${skulls.maxOf { it.maxScore } } (overall: $bestMaxScore); " +
+                "average $gamesPerTraining-game score: ${skulls.sumOf { it.totalScore } / numberBrains }; " +
+                "average game score: ${skulls.sumOf { it.maxScore } / numberBrains}; " + 
+                "previous top player scores: $prevTotalScore / $prevMaxScore"
         )
     }
 
@@ -100,7 +120,7 @@ class Population(val players: List<Player>) {
         // since skulls with a higher fitness function add more to the running sum they have a higher chance
         // of being chosen.
 
-        val sortedSkulls = skulls.sortedByDescending { it.totalScore }.take(numberBrains / 20)
+        val sortedSkulls = skulls.sortedByDescending { it.totalScore }.take(numberBrains / 10)
 
         val fitnessSum = sortedSkulls.sumOf { (it.totalScore * it.totalScore).toLong() }
         val rand = Random.nextLong(fitnessSum)
