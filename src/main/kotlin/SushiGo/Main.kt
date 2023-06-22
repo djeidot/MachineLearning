@@ -66,7 +66,7 @@ object Main {
         }
     }
 
-    private fun updateScore(scorePuddings: Boolean) {
+    private fun updateScore(lastRound: Boolean) {
         // Maki - count maki rolls, most gets 6 points, second gets 3 points
         val makiRolls = players.withIndex().map { Pair(it.index, it.value.getMakiRollCount()) }.sortedByDescending { it.second }
         val makiMostRolls = makiRolls[0].second
@@ -125,8 +125,8 @@ object Main {
             }
             player.score += nigiriScore
         }
-        // Pudding - most puddings gets +6, least puddings gets -6
-        if (scorePuddings) {
+        if (lastRound) {
+            // Pudding - most puddings gets +6, least puddings gets -6
             var puddingCount = players.withIndex().map { Pair(it.index, it.value.table[CardGroups.Pudding]?.size ?: 0)}.sortedByDescending { it.second }
             val mostPuddings = puddingCount[0].second
 
@@ -140,6 +140,15 @@ object Main {
                 val lastPlayerScore = -(6 / lastPlayers.size)
                 lastPlayers.forEach { players[it.first].score += lastPlayerScore }
             }
+            
+            // Game winner gets a 10-point score boost
+            val maxScore = players.maxOf { it.score }
+            var winners = players.filter { it.score == maxScore }
+            if (winners.size > 1) {
+                val maxPuddings = winners.maxOf { it.table[CardGroups.Pudding]?.size ?: 0 }
+                winners = winners.filter { (it.table[CardGroups.Pudding]?.size ?: 0) == maxPuddings }
+            }
+            winners.forEach { it.score += 10 }
         }
     }
 

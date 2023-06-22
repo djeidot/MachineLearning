@@ -17,7 +17,7 @@ class Population(val players: List<Player>) {
             15 + // cards in table
             4 * 15 + // other players' cards in table
             12 // cards in hand
-    private val outputSize = 12 + 12 * 12   // cards (no chopsticks) plus cards (with chopsticks)
+    private val outputSize = 12 + 1 + 12   // cards (no chopsticks) plus cards (with chopsticks)
     private var generation = 1
     private var bestMaxScore = 0
     private var bestTotalScore = 0
@@ -88,14 +88,26 @@ class Population(val players: List<Player>) {
     private fun naturalSelection() {
         val newSkulls = mutableListOf<Skull>()    // next generation
 
-        // transition the 10 best skulls
-        val transitionedSkullsSize = 10 //numberBrains / 10
-        val sortedSkulls = skulls.sortedByDescending { it.totalScore }
-        for (i in 0 until transitionedSkullsSize) {
-            newSkulls.add(sortedSkulls[i].clone())
+        // from the 10% best snakes of last generation, keep the half that has better scores
+        val transitionedSkullsSize = numberBrains / 10
+        val lastGenerationSize = numberBrains / 20
+        
+        val sortedBestSkulls = skulls.take(transitionedSkullsSize).sortedByDescending { it.totalScore }.take(lastGenerationSize)
+        for (bestSkull in sortedBestSkulls) {
+            newSkulls.add(bestSkull.clone())
         }
+
+        // transition the 5% best skulls (or, rather, fill until there are 10% in total)
+        val sortedSkulls = skulls.sortedByDescending { it.totalScore }
+        var i = 0
+        while (newSkulls.size < transitionedSkullsSize) {
+            if (sortedSkulls[i++] !in sortedBestSkulls) {
+                newSkulls.add(sortedSkulls[i].clone())
+            }
+        }
+        
         // randomize the next 10%
-        val randomizedSize = numberBrains / 10
+        val randomizedSize = numberBrains / 5
         for (i in transitionedSkullsSize until randomizedSize) {
             newSkulls.add(Skull(NeuralNet(skulls[0].brain.inputNodes, skulls[0].brain.hiddenNodes, skulls[0].brain.outputNodes, skulls[0].brain.useSecond)))
         }

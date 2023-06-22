@@ -14,18 +14,18 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
                 15 + // cards in table
                 4 * 15 + // other players' cards in table
                 12 // cards in hand
-    private val outputSize = 12 + 12 * 12   // cards (no chopsticks) plus cards (with chopsticks)
+    private val outputSize = 12 + 1 + 12   // cards (no chopsticks) + chopsticks flag + cards for chopsticks
     private val brain = NeuralNet(inputSize, 30, outputSize, false)
     private var skull: Skull? = null
     
     override fun playRound() {
         val (card1, card2) = runMachineLearning()
 
-        assert(canUseChopsticks() == (card2 != null))
+        assert(canUseChopsticks() || (card2 == null))
         // Play a card into your table
         hand.remove(card1)
         addToTable(card1)
-        if (canUseChopsticks() && card2 != null) {
+        if (card2 != null) {
             hand.remove(card2)
             addToTable(card2)
             val chop = table[CardGroups.Chopsticks]!!.removeFirst()
@@ -127,36 +127,26 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
         // 1 value per card type (-1 if not in hand)
         // 1 value per card type * card type (-1 if card combination not in hand, or can't use chopsticks).
         
-        val cardTypeSize = Cards.values().size
+        val chopsticksFlagIndex = Cards.values().size
         if (!canUseChopsticks()) {
-            for (i in cardTypeSize..decisionArray.lastIndex) {
-                decisionArray[i] = -1f
-            }
+            decisionArray[chopsticksFlagIndex] = -1f
         }
+        val willUseChopsticks = decisionArray[chopsticksFlagIndex] >= 0
+    
         for (cardType in Cards.values().withIndex()) {
             if (!hand.contains(cardType.value)) {
                 decisionArray[cardType.index] = -1f
-                if (canUseChopsticks()) {
-                    for (i in Cards.values().indices) {
-                        decisionArray[cardTypeSize + cardTypeSize * i + cardType.index] = -1f
-                        decisionArray[cardTypeSize + cardTypeSize * cardType.index + i] = -1f
-                    }
-                }
+                decisionArray[chopsticksFlagIndex + 1 + cardType.index] = -1f
             }
 
-            if (canUseChopsticks() && hand.count { it == cardType.value } < 2) {
-                decisionArray[cardTypeSize + cardTypeSize * cardType.index + cardType.index] = -1f
+            if (willUseChopsticks && hand.count { it == cardType.value } < 2) {
+                decisionArray[chopsticksFlagIndex + 1 + cardType.index] = -1f
             }
         }
         
-        val bestDecision = decisionArray.withIndex().maxBy { it.value }.index
-        return if (bestDecision < cardTypeSize) {
-            Pair(Cards.values()[bestDecision], null)
-        } else {
-            val card1Index = (bestDecision - cardTypeSize) / cardTypeSize
-            val card2Index = (bestDecision - cardTypeSize) % cardTypeSize
-            Pair(Cards.values()[card1Index], Cards.values()[card2Index])
-        }
+        val chosenCard = decisionArray.take(Cards.values().size).withIndex().maxBy { it.value }.index
+        val chosenCardChopsticks = if (willUseChopsticks) decisionArray.drop(chopsticksFlagIndex + 1).withIndex().maxBy { it.value }.index else null
+        return Pair(Cards.values()[chosenCard], chosenCardChopsticks?.let { Cards.values()[it] })
     }
 
     fun loadBrain(fileName: String) {
