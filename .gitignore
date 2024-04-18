@@ -26,3 +26,4 @@ out/
 data/SushiGo/
 
 .idea/csv-editor.xml
+*.pyc

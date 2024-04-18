@@ -125,7 +125,7 @@ class CpuPlayer(position: Position, subPosition: Position = position) :
         // overridden with a -1.0 score, then we select the card with the highest score.
         // cards in output are arranged as
         // 1 value per card type (-1 if not in hand)
-        // 1 value per card type * card type (-1 if card combination not in hand, or can't use chopsticks).
+        // 1 value per card type (-1 if card combination not in hand, or can't use chopsticks).
         
         val chopsticksFlagIndex = Cards.values().size
         if (!canUseChopsticks()) {
